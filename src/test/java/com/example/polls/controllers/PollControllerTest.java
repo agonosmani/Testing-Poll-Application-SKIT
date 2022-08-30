@@ -9,6 +9,7 @@ import com.example.polls.payload.*;
 import com.example.polls.security.UserPrincipal;
 import com.example.polls.service.PollService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,11 +65,12 @@ public class PollControllerTest {
     }
 
     @Test
-    public void testGetPollsListOfEmptyPolls() {
+    public void testGetPollsListOfEmptyPolls() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         int page = 1, size = 30, totalElements = 0, totalPages = 0;
         boolean last = true;
-        PagedResponse<PollResponse> response = new PagedResponse<PollResponse>(new ArrayList<>(),
+        PagedResponse<PollResponse> mockResponse = new PagedResponse<PollResponse>(new ArrayList<>(),
                 page,
                 size,
                 totalElements,
@@ -76,18 +78,30 @@ public class PollControllerTest {
                 last);
         Mockito.when(this.pollService.getAllPolls(Mockito.any(UserPrincipal.class),
                                             Mockito.anyInt(),
-                                            Mockito.anyInt())).thenReturn(response);
+                                            Mockito.anyInt())).thenReturn(mockResponse);
 
-        Assert.assertEquals(response, controller.getPolls(currentUser, 1, 30));
+        MvcResult result = mockMvc.perform(get("/api/polls"))
+                .andExpect(status().isOk()).andReturn();
+
+        String jsonResponse = result.getResponse().getContentAsString();
+
+        ObjectMapper mapper = new ObjectMapper();
+        JavaTimeModule module = new JavaTimeModule();
+        mapper.registerModule(module);
+
+        PagedResponse<PollResponse> pagedResponse = mapper.readValue(jsonResponse, PagedResponse.class);
+
+        Assert.assertEquals(pagedResponse.toString(), mockResponse.toString());
     }
 
     @Test
-    public void testGetPollsListOfNonEmptyList() {
+    public void testGetPollsListOfNonEmptyList() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         int page = 1, size = 30, totalElements = 0, totalPages = 0;
         boolean last = true;
 
-        PagedResponse<PollResponse> response = new PagedResponse<PollResponse>(
+        PagedResponse<PollResponse> mockResponse = new PagedResponse<PollResponse>(
                 this.getPolls(),
                 page,
                 size,
@@ -96,9 +110,20 @@ public class PollControllerTest {
                 last);
         Mockito.when(this.pollService.getAllPolls(Mockito.any(UserPrincipal.class),
                 Mockito.anyInt(),
-                Mockito.anyInt())).thenReturn(response);
+                Mockito.anyInt())).thenReturn(mockResponse);
 
-        Assert.assertEquals(response, controller.getPolls(currentUser, 1, 30));
+        MvcResult result = mockMvc.perform(get("/api/polls"))
+                .andExpect(status().isOk()).andReturn();
+
+        String jsonResponse = result.getResponse().getContentAsString();
+
+        ObjectMapper mapper = new ObjectMapper();
+        JavaTimeModule module = new JavaTimeModule();
+        mapper.registerModule(module);
+
+        PagedResponse<PollResponse> pagedResponse = mapper.readValue(jsonResponse, PagedResponse.class);
+
+        Assert.assertEquals(pagedResponse.toString(), mockResponse.toString());
     }
 
     @Test
@@ -121,6 +146,26 @@ public class PollControllerTest {
         String uri = result.getResponse().getHeader("Location");
 
         Assert.assertEquals(uri, String.format("http://localhost/api/polls/%d", this.createPoll(poll).getId()));
+    }
+
+    @Test
+    public void testGetPollByIdSuccessful() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+        Mockito.when(this.pollService.getPollById(Mockito.anyLong(), Mockito.any(UserPrincipal.class)))
+                .thenReturn(this.getPoll());
+
+        MvcResult result = mockMvc.perform(get("/api/polls/1"))
+                                .andExpect(status().isOk()).andReturn();
+
+        String jsonResponse = result.getResponse().getContentAsString();
+
+        ObjectMapper mapper = new ObjectMapper();
+        JavaTimeModule module = new JavaTimeModule();
+        mapper.registerModule(module);
+        PollResponse pollResponse = mapper.readValue(jsonResponse, PollResponse.class);
+
+        Assert.assertEquals(pollResponse.toString(), this.getPoll().toString());
     }
 
     private Poll createPoll(PollRequest pollRequest) {
@@ -173,6 +218,53 @@ public class PollControllerTest {
     private ArrayList<PollResponse> getPolls() {
         List<PollResponse> polls = new ArrayList<PollResponse>();
 
+        PollResponse poll1 = this.getPoll();
+
+        polls.add(poll1);
+
+        PollResponse poll2 = new PollResponse();
+
+        poll2.setId(2L);
+        poll2.setQuestion("If you could live in a book, TV show, or movie, what would it be?");
+        poll2.setCreationDateTime(Instant.parse("2022-08-30T10:15:30.00Z"));
+        poll2.setExpirationDateTime(Instant.parse("2022-09-01T10:15:30.00Z"));
+
+        Instant now = Instant.now();
+        poll2.setExpired(poll2.getExpirationDateTime().isBefore(now));
+
+        List<ChoiceResponse> choiceResponses2 = new ArrayList<>();
+        ChoiceResponse choiceResponse3 = new ChoiceResponse();
+        choiceResponse3.setId(3);
+        choiceResponse3.setText("Book");
+        choiceResponse3.setVoteCount(6L);
+        choiceResponses2.add(choiceResponse3);
+        ChoiceResponse choiceResponse4 = new ChoiceResponse();
+        choiceResponse4.setId(4);
+        choiceResponse4.setText("TV Show");
+        choiceResponse4.setVoteCount(8L);
+        choiceResponses2.add(choiceResponse4);
+        ChoiceResponse choiceResponse5 = new ChoiceResponse();
+        choiceResponse5.setId(5);
+        choiceResponse5.setText("Movie");
+        choiceResponse5.setVoteCount(3L);
+        choiceResponses2.add(choiceResponse5);
+
+        poll2.setChoices(choiceResponses2);
+
+        UserSummary creatorSummary = new UserSummary(currentUser.getId(), currentUser.getUsername(), currentUser.getName());
+
+        poll2.setCreatedBy(creatorSummary);
+
+        poll2.setSelectedChoice(1L);
+
+        poll2.setTotalVotes(17L);
+
+        polls.add(poll2);
+
+        return (ArrayList<PollResponse>) polls;
+    }
+
+    private PollResponse getPoll() {
         PollResponse poll1 = new PollResponse();
 
         poll1.setId(1L);
@@ -205,45 +297,7 @@ public class PollControllerTest {
 
         poll1.setTotalVotes(11L);
 
-        polls.add(poll1);
-
-        PollResponse poll2 = new PollResponse();
-
-        poll2.setId(2L);
-        poll2.setQuestion("If you could live in a book, TV show, or movie, what would it be?");
-        poll2.setCreationDateTime(Instant.parse("2022-08-30T10:15:30.00Z"));
-        poll2.setExpirationDateTime(Instant.parse("2022-09-01T10:15:30.00Z"));
-
-        poll2.setExpired(poll2.getExpirationDateTime().isBefore(now));
-
-        List<ChoiceResponse> choiceResponses2 = new ArrayList<>();
-        ChoiceResponse choiceResponse3 = new ChoiceResponse();
-        choiceResponse3.setId(3);
-        choiceResponse3.setText("Book");
-        choiceResponse3.setVoteCount(6L);
-        choiceResponses2.add(choiceResponse3);
-        ChoiceResponse choiceResponse4 = new ChoiceResponse();
-        choiceResponse4.setId(4);
-        choiceResponse4.setText("TV Show");
-        choiceResponse4.setVoteCount(8L);
-        choiceResponses2.add(choiceResponse4);
-        ChoiceResponse choiceResponse5 = new ChoiceResponse();
-        choiceResponse5.setId(5);
-        choiceResponse5.setText("Movie");
-        choiceResponse5.setVoteCount(3L);
-        choiceResponses2.add(choiceResponse5);
-
-        poll2.setChoices(choiceResponses2);
-
-        poll2.setCreatedBy(creatorSummary);
-
-        poll2.setSelectedChoice(1L);
-
-        poll2.setTotalVotes(17L);
-
-        polls.add(poll2);
-
-        return (ArrayList<PollResponse>) polls;
+        return poll1;
     }
 
 }
