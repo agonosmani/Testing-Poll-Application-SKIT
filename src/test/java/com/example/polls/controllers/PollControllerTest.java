@@ -46,6 +46,10 @@ public class PollControllerTest {
 
     private UserPrincipal currentUser;
 
+    private MockMvc mockMvc;
+
+    private ObjectMapper mapper;
+
     @Before
     public void init() throws Exception {
         MockitoAnnotations.openMocks(this);
@@ -54,28 +58,26 @@ public class PollControllerTest {
                 "agon", "agon@osmani.com", "pass123", Collections.emptyList());
 
         controller = new PollController(pollService);
+
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+        mapper = new ObjectMapper();
+
+        JavaTimeModule module = new JavaTimeModule();
+        mapper.registerModule(module);
     }
 
     @Test
     public void testGetPolls200OKResponse() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-
         mockMvc.perform(get("/api/polls"))
                 .andExpect(status().isOk());
     }
 
     @Test
     public void testGetPollsListOfEmptyPolls() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
-        int page = 1, size = 30, totalElements = 0, totalPages = 0;
-        boolean last = true;
-        PagedResponse<PollResponse> mockResponse = new PagedResponse<PollResponse>(new ArrayList<>(),
-                page,
-                size,
-                totalElements,
-                totalPages,
-                last);
+        PagedResponse<PollResponse> mockResponse = getMockResponse(new ArrayList<>());
+
         Mockito.when(this.pollService.getAllPolls(Mockito.any(UserPrincipal.class),
                                             Mockito.anyInt(),
                                             Mockito.anyInt())).thenReturn(mockResponse);
@@ -85,10 +87,6 @@ public class PollControllerTest {
 
         String jsonResponse = result.getResponse().getContentAsString();
 
-        ObjectMapper mapper = new ObjectMapper();
-        JavaTimeModule module = new JavaTimeModule();
-        mapper.registerModule(module);
-
         PagedResponse<PollResponse> pagedResponse = mapper.readValue(jsonResponse, PagedResponse.class);
 
         Assert.assertEquals(pagedResponse.toString(), mockResponse.toString());
@@ -96,30 +94,17 @@ public class PollControllerTest {
 
     @Test
     public void testGetPollsListOfNonEmptyList() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
-        int page = 1, size = 30, totalElements = 0, totalPages = 0;
-        boolean last = true;
+        PagedResponse<PollResponse> mockResponse = getMockResponse(this.getPolls());
 
-        PagedResponse<PollResponse> mockResponse = new PagedResponse<PollResponse>(
-                this.getPolls(),
-                page,
-                size,
-                totalElements,
-                totalPages,
-                last);
         Mockito.when(this.pollService.getAllPolls(Mockito.any(UserPrincipal.class),
-                Mockito.anyInt(),
-                Mockito.anyInt())).thenReturn(mockResponse);
+                                            Mockito.anyInt(),
+                                            Mockito.anyInt())).thenReturn(mockResponse);
 
         MvcResult result = mockMvc.perform(get("/api/polls"))
                 .andExpect(status().isOk()).andReturn();
 
         String jsonResponse = result.getResponse().getContentAsString();
-
-        ObjectMapper mapper = new ObjectMapper();
-        JavaTimeModule module = new JavaTimeModule();
-        mapper.registerModule(module);
 
         PagedResponse<PollResponse> pagedResponse = mapper.readValue(jsonResponse, PagedResponse.class);
 
@@ -128,13 +113,10 @@ public class PollControllerTest {
 
     @Test
     public void testCreatePollSuccessful() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-
         PollRequest poll = this.createPollRequest();
 
         Mockito.when(this.pollService.createPoll(Mockito.any(PollRequest.class))).thenReturn(this.createPoll(poll));
 
-        ObjectMapper mapper = new ObjectMapper();
         String pollToCreate = mapper.writeValueAsString(poll);
 
         MvcResult result = mockMvc.perform(post("/api/polls")
@@ -150,8 +132,6 @@ public class PollControllerTest {
 
     @Test
     public void testGetPollByIdSuccessful() throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-
         Mockito.when(this.pollService.getPollById(Mockito.anyLong(), Mockito.any(UserPrincipal.class)))
                 .thenReturn(this.getPoll());
 
@@ -160,12 +140,52 @@ public class PollControllerTest {
 
         String jsonResponse = result.getResponse().getContentAsString();
 
-        ObjectMapper mapper = new ObjectMapper();
-        JavaTimeModule module = new JavaTimeModule();
-        mapper.registerModule(module);
         PollResponse pollResponse = mapper.readValue(jsonResponse, PollResponse.class);
 
         Assert.assertEquals(pollResponse.toString(), this.getPoll().toString());
+    }
+
+    @Test
+    public void testCastVoteSuccessful() throws Exception {
+        PollResponse poll = this.getPoll();
+
+        Mockito.when(this.pollService.castVoteAndGetUpdatedPoll(Mockito.anyLong(),
+                                                                Mockito.any(VoteRequest.class),
+                                                                Mockito.any(UserPrincipal.class)))
+                .thenReturn(this.pollAfterVote(poll));
+
+        VoteRequest voteRequest = new VoteRequest();
+        voteRequest.setChoiceId(2L);
+
+        String voteReq = mapper.writeValueAsString(voteRequest);
+
+        MvcResult result = mockMvc.perform(post(String.format("/api/polls/%d/votes", poll.getId()))
+                                    .content(voteReq)
+                                    .contentType(MediaType.APPLICATION_JSON))
+                            .andExpect(status().isOk())
+                            .andReturn();
+
+        String jsonResponse = result.getResponse().getContentAsString();
+
+        PollResponse pollResponse = mapper.readValue(jsonResponse, PollResponse.class);
+
+        Assert.assertEquals(pollResponse.toString(), this.pollAfterVote(poll).toString());
+        Assert.assertNotEquals(pollResponse.toString(), this.getPoll().toString());
+    }
+
+
+    private PagedResponse<PollResponse> getMockResponse(List<PollResponse> polls) {
+        return new PagedResponse<>(polls, 1, 30, 0, 0, true);
+    }
+
+    private PollResponse pollAfterVote(PollResponse poll) {
+        poll.setSelectedChoice(2L);
+
+        ChoiceResponse cR = poll.getChoices().get(1);
+        cR.setVoteCount(7L);
+
+        poll.setTotalVotes(12L);
+        return poll;
     }
 
     private Poll createPoll(PollRequest pollRequest) {
@@ -188,7 +208,6 @@ public class PollControllerTest {
 
         request.setQuestion("What fictional place would you most like to go to?");
 
-
         List<ChoiceRequest> choices = new ArrayList<>();
 
         ChoiceRequest choice1 = new ChoiceRequest();
@@ -205,12 +224,10 @@ public class PollControllerTest {
 
         request.setChoices(choices);
 
-
         PollLength length = new PollLength();
         length.setDays(2);
         length.setHours(2);
         request.setPollLength(length);
-
 
         return request;
     }
@@ -219,9 +236,7 @@ public class PollControllerTest {
         List<PollResponse> polls = new ArrayList<PollResponse>();
 
         PollResponse poll1 = this.getPoll();
-
         polls.add(poll1);
-
         PollResponse poll2 = new PollResponse();
 
         poll2.setId(2L);
@@ -250,15 +265,10 @@ public class PollControllerTest {
         choiceResponses2.add(choiceResponse5);
 
         poll2.setChoices(choiceResponses2);
-
         UserSummary creatorSummary = new UserSummary(currentUser.getId(), currentUser.getUsername(), currentUser.getName());
-
         poll2.setCreatedBy(creatorSummary);
-
         poll2.setSelectedChoice(1L);
-
         poll2.setTotalVotes(17L);
-
         polls.add(poll2);
 
         return (ArrayList<PollResponse>) polls;
