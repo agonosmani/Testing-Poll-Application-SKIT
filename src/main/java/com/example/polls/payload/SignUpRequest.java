@@ -1,5 +1,6 @@
 package com.example.polls.payload;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.validation.constraints.*;
 
 public class SignUpRequest {
@@ -19,6 +20,21 @@ public class SignUpRequest {
     @NotBlank
     @Size(min = 6, max = 20)
     private String password;
+
+    public SignUpRequest(
+        @JsonProperty("name")
+            String name,
+        @JsonProperty("username")
+            String username,
+        @JsonProperty("email")
+            String email,
+        @JsonProperty("password")
+            String password) {
+        this.name = name;
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
 
     public String getName() {
         return name;
