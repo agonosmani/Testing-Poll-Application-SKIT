@@ -1,21 +1,31 @@
 package com.example.polls.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 import java.util.List;
 
 public class PollResponse {
+    @JsonProperty("id")
     private Long id;
+    @JsonProperty("question")
     private String question;
+    @JsonProperty("choices")
     private List<ChoiceResponse> choices;
+    @JsonProperty("createdBy")
     private UserSummary createdBy;
+    @JsonProperty("creationDateTime")
     private Instant creationDateTime;
+    @JsonProperty("expirationDateTime")
     private Instant expirationDateTime;
+    @JsonProperty("isExpired")
     private Boolean isExpired;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty("selectedChoice")
     private Long selectedChoice;
+    @JsonProperty("totalVotes")
     private Long totalVotes;
 
     public Long getId() {
@@ -89,5 +99,20 @@ public class PollResponse {
 
     public void setTotalVotes(Long totalVotes) {
         this.totalVotes = totalVotes;
+    }
+
+    @Override
+    public String toString() {
+        return "PollResponse{" +
+                "id=" + id +
+                ", question='" + question + '\'' +
+                ", choices=" + choices +
+                ", createdBy=" + createdBy +
+                ", creationDateTime=" + creationDateTime +
+                ", expirationDateTime=" + expirationDateTime +
+                ", isExpired=" + isExpired +
+                ", selectedChoice=" + selectedChoice +
+                ", totalVotes=" + totalVotes +
+                '}';
     }
 }
