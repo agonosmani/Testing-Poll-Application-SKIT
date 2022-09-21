@@ -1,16 +1,30 @@
 package com.example.polls.payload;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.Instant;
 
 public class UserProfile {
+    @JsonProperty("id")
     private Long id;
+    @JsonProperty("username")
     private String username;
+    @JsonProperty("name")
     private String name;
+    @JsonProperty("joinedAt")
     private Instant joinedAt;
+    @JsonProperty("pollCount")
     private Long pollCount;
+    @JsonProperty("voteCount")
     private Long voteCount;
 
-    public UserProfile(Long id, String username, String name, Instant joinedAt, Long pollCount, Long voteCount) {
+    public UserProfile(
+            @JsonProperty("id") Long id,
+            @JsonProperty("username") String username,
+            @JsonProperty("name") String name,
+            @JsonProperty("joinedAt") Instant joinedAt,
+            @JsonProperty("pollCount") Long pollCount,
+            @JsonProperty("voteCount") Long voteCount) {
         this.id = id;
         this.username = username;
         this.name = name;
@@ -65,5 +79,17 @@ public class UserProfile {
 
     public void setVoteCount(Long voteCount) {
         this.voteCount = voteCount;
+    }
+
+    @Override
+    public String toString() {
+        return "UserProfile{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", name='" + name + '\'' +
+                ", joinedAt=" + joinedAt +
+                ", pollCount=" + pollCount +
+                ", voteCount=" + voteCount +
+                '}';
     }
 }

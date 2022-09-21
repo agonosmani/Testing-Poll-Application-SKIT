@@ -174,7 +174,7 @@ public class PollControllerTest {
     }
 
 
-    private PagedResponse<PollResponse> getMockResponse(List<PollResponse> polls) {
+    public PagedResponse<PollResponse> getMockResponse(List<PollResponse> polls) {
         return new PagedResponse<>(polls, 1, 30, 0, 0, true);
     }
 
@@ -232,7 +232,7 @@ public class PollControllerTest {
         return request;
     }
 
-    private ArrayList<PollResponse> getPolls() {
+    public ArrayList<PollResponse> getPolls() {
         List<PollResponse> polls = new ArrayList<PollResponse>();
 
         PollResponse poll1 = this.getPoll();
@@ -274,7 +274,7 @@ public class PollControllerTest {
         return (ArrayList<PollResponse>) polls;
     }
 
-    private PollResponse getPoll() {
+    public PollResponse getPoll() {
         PollResponse poll1 = new PollResponse();
 
         poll1.setId(1L);
