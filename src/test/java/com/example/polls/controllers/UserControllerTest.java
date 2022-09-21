@@ -9,7 +9,6 @@ import com.example.polls.payload.UserProfile;
 import com.example.polls.repository.PollRepository;
 import com.example.polls.repository.UserRepository;
 import com.example.polls.repository.VoteRepository;
-import com.example.polls.security.UserPrincipal;
 import com.example.polls.service.PollService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -25,9 +24,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -57,13 +53,17 @@ public class UserControllerTest {
     private UserIdentityAvailability usernameAvailable;
     private UserIdentityAvailability usernameUnavailable;
 
+    private UserIdentityAvailability emailAvailable;
+    private UserIdentityAvailability emailUnavailable;
+
     @Before
     public void init() throws Exception {
         MockitoAnnotations.openMocks(this);
 
         userController = new UserController(userRepository, pollRepository, voteRepository, pollService);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
+        mockMvc = MockMvcBuilders
+            .standaloneSetup(userController).build();
 
         mapper = new ObjectMapper();
 
@@ -72,6 +72,14 @@ public class UserControllerTest {
 
         usernameAvailable = new UserIdentityAvailability(true);
         usernameUnavailable = new UserIdentityAvailability(false);
+        emailAvailable = new UserIdentityAvailability(true);
+        emailUnavailable = new UserIdentityAvailability(false);
+    }
+
+    @Test
+    public void testGetCurrentUserSuccessResponse() throws Exception {
+        mockMvc.perform(get("/api/user/me"))
+            .andExpect(status().isOk());
     }
 
     @Test
@@ -116,6 +124,40 @@ public class UserControllerTest {
     }
 
     @Test
+    public void testChecEmailAvailabilityWithUnregisteredEmail() throws Exception {
+
+        Mockito.when(this.userRepository.existsByEmail("angel@test.com"))
+            .thenReturn(false);
+
+        MvcResult result = mockMvc.perform(get("/api/user/checkEmailAvailability")
+                .param("email", "angel@test.com"))
+            .andExpect(status().isOk()).andReturn();
+
+        String jsonResponse = result.getResponse().getContentAsString();
+        UserIdentityAvailability availability = mapper.readValue(jsonResponse, UserIdentityAvailability.class);
+
+        Assert.assertEquals(availability.toString(), this.emailAvailable.toString());
+        Assert.assertNotEquals(availability.toString(), this.emailUnavailable.toString());
+    }
+
+    @Test
+    public void testCheckEmailAvailabilityWithRegisteredEmail() throws Exception {
+
+        Mockito.when(this.userRepository.existsByEmail("angel@test.com"))
+            .thenReturn(true);
+
+        MvcResult result = mockMvc.perform(get("/api/user/checkEmailAvailability")
+                .param("email", "angel@test.com"))
+            .andExpect(status().isOk()).andReturn();
+
+        String jsonResponse = result.getResponse().getContentAsString();
+        UserIdentityAvailability availability = mapper.readValue(jsonResponse, UserIdentityAvailability.class);
+
+        Assert.assertEquals(availability.toString(), this.emailUnavailable.toString());
+        Assert.assertNotEquals(availability.toString(), this.emailAvailable.toString());
+    }
+
+    @Test
     public void testGetUserProfileUserExists() throws Exception {
 
         User user = new User("John", "johnsmith", "john_smith@gmail.com", "pass123");
@@ -151,6 +193,31 @@ public class UserControllerTest {
 
         mockMvc.perform(get("/api/users/johnsmith"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void testGetPollsCreatedBy() throws Exception {
+
+        PollControllerTest test = new PollControllerTest();
+        test.init();
+        PagedResponse<PollResponse> mockResponse = test.getMockResponse(test.getPolls());
+
+        Mockito.when(this.pollService.getPollsCreatedBy(
+                Mockito.any(),
+                Mockito.any(),
+                Mockito.anyInt(),
+                Mockito.anyInt()
+            ))
+            .thenReturn(mockResponse);
+
+        MvcResult result = mockMvc.perform(get("/api/users/johnsmith/polls"))
+            .andExpect(status().isOk()).andReturn();
+
+        String jsonResponse = result.getResponse().getContentAsString();
+
+        PagedResponse<PollResponse> pagedResponse = mapper.readValue(jsonResponse, PagedResponse.class);
+
+        Assert.assertEquals(pagedResponse.toString(), mockResponse.toString());
     }
 
     @Test
