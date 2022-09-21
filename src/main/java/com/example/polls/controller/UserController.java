@@ -12,7 +12,6 @@ import com.example.polls.security.CurrentUser;
 import com.example.polls.util.AppConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,19 +19,23 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 public class UserController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private PollRepository pollRepository;
+    private final PollRepository pollRepository;
 
-    @Autowired
-    private VoteRepository voteRepository;
+    private final VoteRepository voteRepository;
 
-    @Autowired
-    private PollService pollService;
+    private final PollService pollService;
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+
+    public UserController(UserRepository userRepository, PollRepository pollRepository, VoteRepository voteRepository,
+                          PollService pollService) {
+        this.userRepository = userRepository;
+        this.pollRepository = pollRepository;
+        this.voteRepository = voteRepository;
+        this.pollService = pollService;
+    }
 
     @GetMapping("/user/me")
     @PreAuthorize("hasRole('USER')")
