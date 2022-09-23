@@ -24,6 +24,12 @@ public class Choice {
 
     }
 
+    public Choice(String text, Poll poll){
+        this.id = 1L;
+        this.text = text;
+        this.poll = poll;
+    }
+
     public Choice(String text) {
         this.text = text;
     }

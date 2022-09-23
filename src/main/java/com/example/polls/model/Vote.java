@@ -27,6 +27,16 @@ public class Vote extends DateAudit {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    public Vote(Poll poll, Choice choice, User user) {
+        this.id = 1L;
+        this.poll = poll;
+        this.choice = choice;
+        this.user = user;
+    }
+
+    public Vote() {
+    }
+
     public Long getId() {
         return id;
     }

@@ -13,6 +13,8 @@ import java.util.Optional;
 @Repository
 public interface PollRepository extends JpaRepository<Poll, Long> {
 
+    Page<Poll> findAll(Pageable pageable);
+
     Optional<Poll> findById(Long pollId);
 
     Page<Poll> findByCreatedBy(Long userId, Pageable pageable);

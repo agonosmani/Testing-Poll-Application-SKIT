@@ -51,6 +51,14 @@ public class User extends DateAudit {
 
     }
 
+    public User(String name) {
+        this.id = 1L;
+        this.name = name;
+        this.username = name;
+        this.email = "email@email.com";
+        this.password = "password";
+    }
+
     public User(String name, String username, String email, String password) {
         this.name = name;
         this.username = username;

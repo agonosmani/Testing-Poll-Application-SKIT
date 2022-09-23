@@ -34,16 +34,19 @@ import java.util.stream.Collectors;
 @Service
 public class PollService {
 
-    @Autowired
-    private PollRepository pollRepository;
+    private final PollRepository pollRepository;
 
-    @Autowired
-    private VoteRepository voteRepository;
+    private final VoteRepository voteRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(PollService.class);
+
+    public PollService(PollRepository pollRepository, VoteRepository voteRepository, UserRepository userRepository) {
+        this.pollRepository = pollRepository;
+        this.voteRepository = voteRepository;
+        this.userRepository = userRepository;
+    }
 
     public PagedResponse<PollResponse> getAllPolls(UserPrincipal currentUser, int page, int size) {
         validatePageNumberAndSize(page, size);

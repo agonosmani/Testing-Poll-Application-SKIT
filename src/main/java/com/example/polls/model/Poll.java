@@ -37,6 +37,16 @@ public class Poll extends UserDateAudit {
     @NotNull
     private Instant expirationDateTime;
 
+    public Poll(String question) {
+        this.id = 1L;
+        this.question = question;
+        this.choices = new ArrayList<>();
+        this.expirationDateTime = Instant.now();
+    }
+
+    public Poll() {
+    }
+
     public Long getId() {
         return id;
     }
