@@ -5,6 +5,13 @@ public class VoteRequest {
     @NotNull
     private Long choiceId;
 
+    public VoteRequest(Long choiceId) {
+        this.choiceId = choiceId;
+    }
+
+    public VoteRequest() {
+    }
+
     public Long getChoiceId() {
         return choiceId;
     }

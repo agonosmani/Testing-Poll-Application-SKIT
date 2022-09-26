@@ -8,6 +8,13 @@ public class ChoiceRequest {
     @Size(max = 40)
     private String text;
 
+    public ChoiceRequest(String text) {
+        this.text = text;
+    }
+
+    public ChoiceRequest() {
+    }
+
     public String getText() {
         return text;
     }

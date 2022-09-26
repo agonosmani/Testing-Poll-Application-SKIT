@@ -20,6 +20,15 @@ public class PollRequest {
     @Valid
     private PollLength pollLength;
 
+    public PollRequest(String question, List<ChoiceRequest> choices, PollLength pollLength) {
+        this.question = question;
+        this.choices = choices;
+        this.pollLength = pollLength;
+    }
+
+    public PollRequest() {
+    }
+
     public String getQuestion() {
         return question;
     }

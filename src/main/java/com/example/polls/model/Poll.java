@@ -88,4 +88,13 @@ public class Poll extends UserDateAudit {
         choices.remove(choice);
         choice.setPoll(null);
     }
+
+    @Override
+    public String toString() {
+        return "Poll{" +
+                "id=" + id +
+                ", question='" + question + '\'' +
+                ", choices=" + choices +
+                '}';
+    }
 }
